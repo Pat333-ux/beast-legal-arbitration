@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract PrivateArbitration {
+    struct Dispute {
+        uint256 disputeId;
+        address claimant;
+        address respondent;
+        address arbitrator;
+        string caseDetailsHash;
+        string ruling;
+        bool resolved;
+    }
+
+    mapping(uint256 => Dispute) public disputes;
+    uint256 public disputeCounter;
+
+    event DisputeFiled(uint256 indexed disputeId, address indexed claimant, address indexed respondent);
+    event RulingRendered(uint256 indexed disputeId, address arbitrator, string ruling);
+
+    function fileDispute(address _respondent, address _arbitrator, string calldata _caseDetailsHash) external {
+        disputeCounter++;
+        disputes[disputeCounter] = Dispute({
+            disputeId: disputeCounter,
+            claimant: msg.sender,
+            respondent: _respondent,
+            arbitrator: _arbitrator,
+            caseDetailsHash: _caseDetailsHash,
+            ruling: "",
+            resolved: false
+        });
+        emit DisputeFiled(disputeCounter, msg.sender, _respondent);
+    }
+
+    function renderRuling(uint256 _disputeId, string calldata _ruling) external {
+        Dispute storage dispute = disputes[_disputeId];
+        require(msg.sender == dispute.arbitrator, "Only assigned arbitrator can rule");
+        require(!dispute.resolved, "Dispute already resolved");
+
+        dispute.ruling = _ruling;
+        dispute.resolved = true;
+
+        emit RulingRendered(_disputeId, msg.sender, _ruling);
+    }
+}
